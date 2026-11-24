@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ru"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Учебный проект: туристические туры по Таджикистану">
+  <title>Каталог туров — Тоҷикистон Тур</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  <link href="../assets/css/app.css" rel="stylesheet">
+</head><body>
+<nav class="navbar navbar-expand-lg navbar-dark app-navbar" aria-label="Главная навигация">
+ <div class="container"><a class="navbar-brand" href="layout.html">🏔 Тоҷикистон Тур</a>
+ <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false" aria-label="Открыть меню"><span class="navbar-toggler-icon"></span></button>
+ <div class="collapse navbar-collapse" id="mainNav"><ul class="navbar-nav ms-auto"><li class="nav-item"><a class="nav-link" href="layout.html">Главная</a></li><li class="nav-item"><a class="nav-link active" aria-current="page" href="tours.html">Туры</a></li><li class="nav-item"><a class="nav-link" href="tour.html">Маршрут</a></li><li class="nav-item"><a class="nav-link" href="booking-form.html">Бронирование</a></li><li class="nav-item"><a class="nav-link" href="tour-form.html">Добавить тур</a></li></ul></div></div>
+</nav>
+<main class="container py-4"><section aria-labelledby="catalog-title">
+ <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3"><div>
+ <h1 class="h2 section-title mb-1" id="catalog-title">Каталог туров</h1>
+ <p class="text-secondary mb-0">Живой поиск маршрутов с помощью JavaScript и PHP API</p></div>
+ <a class="btn btn-primary" href="booking-form.html">Забронировать тур</a></div>
+ <form id="tours-search-form" class="card card-body mb-2" method="get" action="tours.html" role="search">
+ <div class="row g-3 align-items-end">
+ <div class="col-12 col-md-6"><label for="tour-search" class="form-label">Название или описание</label>
+  <input id="tour-search" name="q" type="search" class="form-control" placeholder="Например, озеро" autocomplete="off"></div>
+ <div class="col-12 col-md-4"><label for="tour-type" class="form-label">Тип маршрута</label>
+  <select class="form-select" id="tour-type" name="type"><option value="">Все типы</option>
+  <option value="mountains">Горный</option><option value="lakes">Озёра</option>
+  <option value="culture">Культурный</option></select></div>
+ <div class="col-12 col-md-2 d-grid"><button class="btn btn-primary" type="submit">Найти</button></div>
+ </div></form>
+ <p id="tour-search-status" class="search-status small text-secondary mb-3" aria-live="polite">Загрузка каталога…</p>
+ <div id="tours-grid" class="tour-grid" aria-label="Список туров">
+ <article class="tour-card"><div class="tour-illustration tour-mountains" role="img" aria-label="Условная иллюстрация гор">🏔️</div>
+ <div class="card-body p-3"><span class="badge-tour">Горы</span><h2 class="h5 mt-2">Фанские горы</h2>
+ <p class="text-secondary">Горные тропы и панорамы</p><p>Продолжительность: 4 дня</p></div>
+ <div class="card-footer p-3"><a class="btn btn-primary" href="tour.html">Подробнее</a></div></article>
+ </div>
+ <p class="small text-secondary mt-3">Учебные данные. Для живого поиска необходим PHP-сервер (открытие через file:// не поддерживается).</p>
+</section></main>
+<div class="modal fade" id="confirm-delete-modal" tabindex="-1" aria-labelledby="confirm-delete-title" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+   <div class="modal-header"><h2 class="modal-title h4" id="confirm-delete-title">Удалить тур?</h2>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button></div>
+   <div class="modal-body"><p class="mb-0">Удалить тур <strong id="confirm-delete-name"></strong>? Действие пока демонстрационное.</p></div>
+   <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+    <form id="confirm-delete-form" method="post" action="#"><button type="submit" class="btn btn-danger">Удалить</button></form>
+   </div>
+  </div></div>
+</div>
+<footer class="app-footer container py-4 text-center">Учебный проект «Туры по Таджикистану» · Данные демонстрационные, 2026</footer>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+<script type="module" src="../assets/js/app.js"></script>
+</body></html>
