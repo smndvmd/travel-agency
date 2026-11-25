@@ -3,16 +3,18 @@ require __DIR__ . '/../config.php';
 $u = require_role('manager');
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check(); $tid = (int)$_POST['id'];
-    if (($_POST['action'] ?? '') === 'toggle')
-        db()->prepare('UPDATE tours SET is_active=1-is_active WHERE id=? AND manager_id=?')->execute([$tid, $u['id']]);
+    $toursRepo = new Tourism\Repositories\TourRepository();
+    if (($_POST['action'] ?? '') === 'toggle') {
+        $tour = $toursRepo->findForManager($tid, (int)$u['id']);
+        if ($tour) $toursRepo->setActive($tid, (int)$u['id'], !(bool)$tour['is_active']);
+    }
     if (($_POST['action'] ?? '') === 'delete') {
-        try { db()->prepare('DELETE FROM tours WHERE id=? AND manager_id=?')->execute([$tid, $u['id']]); flash('Тур нест карда шуд.'); }
+        try { $toursRepo->delete($tid, (int)$u['id']); flash('Тур нест карда шуд.'); }
         catch (PDOException $e) { flash('Нест кардан имконнопазир аст (аллакай бандҳо ҳастанд). Турро пинҳон кунед.', 'err'); }
     }
     redirect('manager/index.php');
 }
-$st = db()->prepare("SELECT t.*, (SELECT COUNT(*) FROM tour_dates WHERE tour_id=t.id AND start_date>=CURDATE()) AS dcount FROM tours t WHERE manager_id=? ORDER BY id DESC");
-$st->execute([$u['id']]); $tours = $st->fetchAll();
+$tours = (new Tourism\Repositories\TourRepository())->managerListing((int)$u['id']);
 $title = 'Турҳои ман'; include __DIR__ . '/../inc/header.php'; ?>
 <h1>Турҳои ман <a class="btn small" href="<?= url('manager/tour_edit.php') ?>">+ Тури нав</a></h1>
 <div class="scroll"><table><tr><th>Тур</th><th>Минтақа</th><th>Рӯз</th><th>Нарх</th><th>Санаҳо</th><th>Ҳолат</th><th></th></tr>

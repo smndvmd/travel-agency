@@ -1,22 +1,23 @@
 <?php
 require __DIR__ . '/config.php';
 $id = (int)($_GET['id'] ?? 0);
-$st = db()->prepare('SELECT t.*, u.full_name AS manager FROM tours t JOIN users u ON u.id=t.manager_id WHERE t.id=? AND t.is_active=1');
-$st->execute([$id]); $t = $st->fetch();
+$toursRepo = new Tourism\Repositories\TourRepository();
+$datesRepo = new Tourism\Repositories\DateRepository();
+$photosRepo = new Tourism\Repositories\PhotoRepository();
+$reviewsRepo = new Tourism\Repositories\ReviewRepository();
+$bookingsRepo = new Tourism\Repositories\BookingRepository();
+$t = $toursRepo->findActive($id);
 if (!$t) { http_response_code(404); exit('Тур ёфт нашуд.'); }
 
-$photos = db()->prepare('SELECT file_path FROM photos WHERE tour_id=? ORDER BY is_main DESC, id'); $photos->execute([$id]); $photos = $photos->fetchAll(PDO::FETCH_COLUMN);
-$dates = db()->prepare('SELECT * FROM v_date_seats WHERE tour_id=? AND start_date>=CURDATE() ORDER BY start_date'); $dates->execute([$id]); $dates = $dates->fetchAll();
-$reviews = db()->prepare("SELECT r.*, u.full_name FROM reviews r JOIN users u ON u.id=r.user_id WHERE r.tour_id=? AND r.status='approved' ORDER BY r.created_at DESC");
-$reviews->execute([$id]); $reviews = $reviews->fetchAll();
+$photos = $photosRepo->pathsForTour($id);
+$dates = $datesRepo->forTour($id, true);
+$reviews = $reviewsRepo->forTour($id);
 $avg = $reviews ? array_sum(array_column($reviews, 'rating')) / count($reviews) : 0;
 
 $u = me(); $canReview = false; $myReview = null; $bookingId = 0;
 if ($u && $u['role'] === 'tourist') {
-    $q = db()->prepare("SELECT b.id FROM bookings b JOIN tour_dates d ON d.id=b.tour_date_id
-        WHERE b.user_id=? AND d.tour_id=? AND b.status='confirmed' AND d.start_date<=CURDATE() ORDER BY d.start_date DESC LIMIT 1");
-    $q->execute([$u['id'], $id]); $bookingId = (int)$q->fetchColumn();
-    $r = db()->prepare('SELECT * FROM reviews WHERE user_id=? AND tour_id=?'); $r->execute([$u['id'], $id]); $myReview = $r->fetch();
+    $bookingId = $bookingsRepo->findReviewable((int)$u['id'], $id) ?? 0;
+    $myReview = $reviewsRepo->findByUserAndTour((int)$u['id'], $id);
     $canReview = $bookingId && !$myReview;
 }
 $title = $t['title']; include __DIR__ . '/inc/header.php'; ?>

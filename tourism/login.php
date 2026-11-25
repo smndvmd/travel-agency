@@ -4,8 +4,7 @@ if (me()) redirect('');
 $err = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
-    $st = db()->prepare('SELECT * FROM users WHERE email=?'); $st->execute([trim($_POST['email'] ?? '')]);
-    $u = $st->fetch();
+    $u = (new Tourism\Repositories\UserRepository())->findByEmail(trim($_POST['email'] ?? ''));
     if (!$u || !password_verify($_POST['password'] ?? '', $u['password_hash'])) $err = 'Email ё парол нодуруст аст.';
     elseif (!$u['is_active']) $err = 'Ҳисоби шумо баста шудааст.';
     else {

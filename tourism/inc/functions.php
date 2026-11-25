@@ -11,9 +11,7 @@ function me(): ?array {
     if (empty($_SESSION['uid'])) return null;
     static $u = false;
     if ($u === false) {
-        $st = db()->prepare('SELECT id,full_name,email,phone,role,is_active FROM users WHERE id=?');
-        $st->execute([$_SESSION['uid']]);
-        $u = $st->fetch() ?: null;
+        $u = (new \Tourism\Repositories\UserRepository())->findById((int)$_SESSION['uid']);
         if ($u && !$u['is_active']) { session_destroy(); $u = null; }
     }
     return $u;
@@ -29,7 +27,9 @@ function csrf_field(): string {
     return '<input type="hidden" name="csrf" value="' . $_SESSION['csrf'] . '">';
 }
 function csrf_check(): void {
-    if (($_POST['csrf'] ?? '') !== ($_SESSION['csrf'] ?? 'x')) { http_response_code(400); exit('Хатогии CSRF.'); }
+    $submitted = $_POST['csrf'] ?? '';
+    $expected = $_SESSION['csrf'] ?? '';
+    if (!is_string($submitted) || !is_string($expected) || $expected === '' || !hash_equals($expected, $submitted)) { http_response_code(400); exit('Хатогии CSRF.'); }
 }
 function stars(float $r): string {
     $f = (int)round($r);

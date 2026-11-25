@@ -1,9 +1,11 @@
 <?php
 require __DIR__ . '/../config.php';
 $u = require_role('manager');
+$toursRepo = new Tourism\Repositories\TourRepository();
+$photosRepo = new Tourism\Repositories\PhotoRepository();
 $id = (int)($_GET['id'] ?? 0); $t = null;
 if ($id) {
-    $st = db()->prepare('SELECT * FROM tours WHERE id=? AND manager_id=?'); $st->execute([$id, $u['id']]); $t = $st->fetch();
+    $t = $toursRepo->findForManager($id, (int)$u['id']);
     if (!$t) { http_response_code(404); exit('Тур ёфт нашуд.'); }
 }
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -12,36 +14,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $f = [trim($_POST['title']), trim($_POST['region']), trim($_POST['short_desc']), trim($_POST['description']), trim($_POST['itinerary']),
               max(1, (int)$_POST['duration_days']), max(0, (float)$_POST['price']), in_array($_POST['difficulty'], ['easy', 'medium', 'hard']) ? $_POST['difficulty'] : 'medium'];
         if ($f[0] === '' || $f[1] === '') { flash('Ном ва минтақаро пур кунед.', 'err'); redirect('manager/tour_edit.php' . ($id ? "?id=$id" : '')); }
-        if ($id) { db()->prepare('UPDATE tours SET title=?,region=?,short_desc=?,description=?,itinerary=?,duration_days=?,price=?,difficulty=? WHERE id=? AND manager_id=?')->execute([...$f, $id, $u['id']]); }
-        else { db()->prepare('INSERT INTO tours (title,region,short_desc,description,itinerary,duration_days,price,difficulty,manager_id) VALUES (?,?,?,?,?,?,?,?,?)')->execute([...$f, $u['id']]); $id = (int)db()->lastInsertId(); }
+        $fields = ['title' => $f[0], 'region' => $f[1], 'short_desc' => $f[2], 'description' => $f[3], 'itinerary' => $f[4], 'duration_days' => $f[5], 'price' => $f[6], 'difficulty' => $f[7]];
+        if ($id) $toursRepo->update($id, (int)$u['id'], $fields);
+        else $id = $toursRepo->create((int)$u['id'], $fields);
         foreach ($_FILES['photos']['name'] ?? [] as $i => $n) {
             if ($n === '') continue;
             $path = upload_photo(['name' => $n, 'tmp_name' => $_FILES['photos']['tmp_name'][$i], 'error' => $_FILES['photos']['error'][$i]]);
             if ($path) {
-                $has = db()->prepare('SELECT COUNT(*) FROM photos WHERE tour_id=?'); $has->execute([$id]);
-                db()->prepare('INSERT INTO photos (tour_id,file_path,is_main) VALUES (?,?,?)')->execute([$id, $path, $has->fetchColumn() == 0 ? 1 : 0]);
+                $photosRepo->add($id, $path, $photosRepo->countForTour($id) === 0);
             }
         }
         flash('Нигоҳ дошта шуд.'); redirect('manager/tour_edit.php?id=' . $id);
     }
     if ($id && $a === 'photo_delete') {
-        $p = db()->prepare('SELECT file_path FROM photos WHERE id=? AND tour_id=?'); $p->execute([(int)$_POST['pid'], $id]);
-        if ($fp = $p->fetchColumn()) {
-            db()->prepare('DELETE FROM photos WHERE id=?')->execute([(int)$_POST['pid']]);
+        $pid = (int)$_POST['pid'];
+        if ($fp = $photosRepo->findPath($pid, $id)) {
+            $photosRepo->delete($pid, $id);
             if (strpos($fp, 'uploads/') === 0) @unlink(__DIR__ . '/../' . $fp);
         }
     }
     if ($id && $a === 'photo_main') {
-        db()->prepare('UPDATE photos SET is_main=0 WHERE tour_id=?')->execute([$id]);
-        db()->prepare('UPDATE photos SET is_main=1 WHERE id=? AND tour_id=?')->execute([(int)$_POST['pid'], $id]);
+        $photosRepo->setMain((int)$_POST['pid'], $id);
     }
     if ($id && $a === 'photo_url' && preg_match('~^https?://~', trim($_POST['url'] ?? ''))) {
-        db()->prepare('INSERT INTO photos (tour_id,file_path) VALUES (?,?)')->execute([$id, trim($_POST['url'])]);
+        $photosRepo->add($id, trim($_POST['url']), $photosRepo->countForTour($id) === 0);
     }
     redirect('manager/tour_edit.php?id=' . $id);
 }
 $photos = [];
-if ($id) { $p = db()->prepare('SELECT * FROM photos WHERE tour_id=? ORDER BY is_main DESC,id'); $p->execute([$id]); $photos = $p->fetchAll(); }
+if ($id) $photos = $photosRepo->forTour($id);
 $v = fn($k, $d = '') => e($t[$k] ?? $d);
 $title = $id ? 'Таҳрири тур' : 'Тури нав'; include __DIR__ . '/../inc/header.php'; ?>
 <h1><?= $title ?></h1>

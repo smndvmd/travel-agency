@@ -1,18 +1,16 @@
 <?php
 require __DIR__ . '/../config.php';
 $u = require_role('admin');
+$reviewsRepo = new Tourism\Repositories\ReviewRepository();
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check(); $id = (int)$_POST['id']; $a = $_POST['action'] ?? '';
-    if ($a === 'approve') db()->prepare("UPDATE reviews SET status='approved' WHERE id=?")->execute([$id]);
-    if ($a === 'reject')  db()->prepare("UPDATE reviews SET status='rejected' WHERE id=?")->execute([$id]);
-    if ($a === 'delete')  db()->prepare('DELETE FROM reviews WHERE id=?')->execute([$id]);
+    if ($a === 'approve') $reviewsRepo->setStatus($id, 'approved');
+    if ($a === 'reject')  $reviewsRepo->setStatus($id, 'rejected');
+    if ($a === 'delete')  $reviewsRepo->delete($id);
     flash('Иҷро шуд.'); redirect('admin/reviews.php?status=' . urlencode($_GET['status'] ?? 'pending'));
 }
 $f = $_GET['status'] ?? 'pending';
-$sql = "SELECT r.*, u.full_name, t.title FROM reviews r JOIN users u ON u.id=r.user_id JOIN tours t ON t.id=r.tour_id";
-$p = [];
-if (in_array($f, ['pending', 'approved', 'rejected'])) { $sql .= ' WHERE r.status=?'; $p[] = $f; }
-$st = db()->prepare($sql . ' ORDER BY r.created_at DESC'); $st->execute($p); $rows = $st->fetchAll();
+$rows = $reviewsRepo->forModeration($f);
 $title = 'Модератсия'; include __DIR__ . '/../inc/header.php'; ?>
 <h1>Модератсияи фикрҳо</h1>
 <p><?php foreach (['pending' => 'Дар интизорӣ', 'approved' => 'Нашршуда', 'rejected' => 'Радшуда', 'all' => 'Ҳама'] as $k => $v): ?>

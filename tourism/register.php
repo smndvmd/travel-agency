@@ -9,12 +9,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) $err = 'Ном ва email-ро дуруст ворид кунед.';
     elseif (strlen($pass) < 6) $err = 'Парол ҳадди ақал 6 аломат бошад.';
     else {
-        $c = db()->prepare('SELECT 1 FROM users WHERE email=?'); $c->execute([$email]);
+        $usersRepo = new Tourism\Repositories\UserRepository();
+        $c = $usersRepo->emailLookup($email);
         if ($c->fetch()) $err = 'Ин email аллакай сабт шудааст.';
         else {
-            db()->prepare("INSERT INTO users (full_name,email,phone,password_hash,role) VALUES (?,?,?,?, 'tourist')")
-                ->execute([$name, $email, $phone, password_hash($pass, PASSWORD_DEFAULT)]);
-            $_SESSION['uid'] = (int)db()->lastInsertId(); session_regenerate_id(true);
+            $_SESSION['uid'] = $usersRepo->create($name, $email, $phone, password_hash($pass, PASSWORD_DEFAULT)); session_regenerate_id(true);
             flash('Хуш омадед! Сабти ном анҷом ёфт.'); redirect('');
         }
     }

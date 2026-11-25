@@ -1,27 +1,27 @@
 <?php
 require __DIR__ . '/../config.php';
 $u = require_role('admin');
+$usersRepo = new Tourism\Repositories\UserRepository();
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check(); $a = $_POST['action'] ?? '';
     if ($a === 'add') {
         $n = trim($_POST['full_name']); $em = trim($_POST['email']); $pw = $_POST['password'] ?? '';
         if ($n === '' || !filter_var($em, FILTER_VALIDATE_EMAIL) || strlen($pw) < 6) flash('Маълумотро дуруст пур кунед (парол ≥ 6 аломат).', 'err');
         else try {
-            db()->prepare("INSERT INTO users (full_name,email,phone,password_hash,role) VALUES (?,?,?,?, 'manager')")
-                ->execute([$n, $em, trim($_POST['phone']), password_hash($pw, PASSWORD_DEFAULT)]);
+            $usersRepo->createManager($n, $em, trim($_POST['phone'] ?? ''), password_hash($pw, PASSWORD_DEFAULT));
             flash('Менеҷер илова шуд.');
         } catch (PDOException $e) { flash('Ин email аллакай ҳаст.', 'err'); }
     } elseif ($a === 'toggle') {
-        db()->prepare("UPDATE users SET is_active=1-is_active WHERE id=? AND role='manager'")->execute([(int)$_POST['id']]);
+        $manager = $usersRepo->findById((int)$_POST['id']);
+        if ($manager && $manager['role'] === 'manager') $usersRepo->setManagerActive((int)$manager['id'], !(bool)$manager['is_active']);
     } elseif ($a === 'reset') {
-        db()->prepare("UPDATE users SET password_hash=? WHERE id=? AND role='manager'")
+        $usersRepo->managerPasswordUpdateStatement()
             ->execute([password_hash($_POST['password'], PASSWORD_DEFAULT), (int)$_POST['id']]); flash('Парол иваз шуд.');
     }
     redirect('admin/index.php');
 }
-$stats = db()->query("SELECT (SELECT COUNT(*) FROM users WHERE role='tourist') tourists, (SELECT COUNT(*) FROM tours) tours,
-  (SELECT COUNT(*) FROM bookings WHERE status IN ('pending','confirmed')) bookings, (SELECT COUNT(*) FROM reviews WHERE status='pending') pending")->fetch();
-$mgrs = db()->query("SELECT u.*, (SELECT COUNT(*) FROM tours WHERE manager_id=u.id) AS tc FROM users u WHERE role='manager' ORDER BY id")->fetchAll();
+$stats = (new Tourism\Repositories\DashboardRepository())->adminStats();
+$mgrs = $usersRepo->managers();
 $title = 'Менеҷерҳо'; include __DIR__ . '/../inc/header.php'; ?>
 <h1>Панели маъмур</h1>
 <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr))">

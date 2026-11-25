@@ -1,24 +1,22 @@
 <?php
 require __DIR__ . '/config.php';
 $u = require_role('tourist');
+$bookingsRepo = new Tourism\Repositories\BookingRepository();
+$usersRepo = new Tourism\Repositories\UserRepository();
+$reviewsRepo = new Tourism\Repositories\ReviewRepository();
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
     if (($_POST['action'] ?? '') === 'cancel') {
-        $n = db()->prepare("UPDATE bookings b JOIN tour_dates d ON d.id=b.tour_date_id SET b.status='cancelled'
-            WHERE b.id=? AND b.user_id=? AND b.status IN ('pending','confirmed') AND d.start_date>CURDATE()");
-        $n->execute([(int)$_POST['id'], $u['id']]);
+        $n = $bookingsRepo->cancelForUser((int)$_POST['id'], (int)$u['id']);
         flash($n->rowCount() ? 'Банд бекор шуд, ҷойҳо озод гардиданд.' : 'Бекор кардан имконнопазир аст.', $n->rowCount() ? 'ok' : 'err');
     } elseif (($_POST['action'] ?? '') === 'profile') {
-        db()->prepare('UPDATE users SET full_name=?, phone=? WHERE id=?')->execute([trim($_POST['full_name']), trim($_POST['phone']), $u['id']]);
+        $usersRepo->updateProfile((int)$u['id'], trim($_POST['full_name'] ?? ''), trim($_POST['phone'] ?? ''));
         flash('Маълумот нигоҳ дошта шуд.');
     }
     redirect('profile.php');
 }
-$st = db()->prepare("SELECT b.*, d.start_date, t.id AS tid, t.title, t.duration_days FROM bookings b
-    JOIN tour_dates d ON d.id=b.tour_date_id JOIN tours t ON t.id=d.tour_id WHERE b.user_id=? ORDER BY b.created_at DESC");
-$st->execute([$u['id']]); $bookings = $st->fetchAll();
-$rv = db()->prepare("SELECT r.*, t.title FROM reviews r JOIN tours t ON t.id=r.tour_id WHERE r.user_id=? ORDER BY r.created_at DESC");
-$rv->execute([$u['id']]); $reviews = $rv->fetchAll();
+$bookings = $bookingsRepo->forUser((int)$u['id']);
+$reviews = $reviewsRepo->forUser((int)$u['id']);
 $title = 'Утоқи ман'; include __DIR__ . '/inc/header.php'; ?>
 <h1>Утоқи ман</h1>
 <div class="card"><form method="post" class="filter"><?= csrf_field() ?><input type="hidden" name="action" value="profile">

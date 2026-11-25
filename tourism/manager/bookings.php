@@ -1,22 +1,17 @@
 <?php
 require __DIR__ . '/../config.php';
 $u = require_role('manager');
+$bookingsRepo = new Tourism\Repositories\BookingRepository();
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check(); $new = ['confirm' => 'confirmed', 'reject' => 'rejected'][$_POST['action'] ?? ''] ?? null;
     if ($new) {
-        $n = db()->prepare("UPDATE bookings b JOIN tour_dates d ON d.id=b.tour_date_id JOIN tours t ON t.id=d.tour_id
-            SET b.status=? WHERE b.id=? AND t.manager_id=? AND b.status='pending'");
-        $n->execute([$new, (int)$_POST['id'], $u['id']]);
+        $n = $bookingsRepo->setStatusForManager((int)$_POST['id'], (int)$u['id'], $new);
         flash($n->rowCount() ? ($new === 'confirmed' ? 'Банд тасдиқ шуд.' : 'Банд рад шуд, ҷойҳо озод гардиданд.') : 'Амалро иҷро карда натавонистем.', $n->rowCount() ? 'ok' : 'err');
     }
     redirect('manager/bookings.php');
 }
 $f = $_GET['status'] ?? 'pending';
-$sql = "SELECT b.*, d.start_date, t.title, us.full_name, us.phone, us.email FROM bookings b
-  JOIN tour_dates d ON d.id=b.tour_date_id JOIN tours t ON t.id=d.tour_id JOIN users us ON us.id=b.user_id WHERE t.manager_id=?";
-$p = [$u['id']];
-if (in_array($f, ['pending', 'confirmed', 'rejected', 'cancelled'])) { $sql .= ' AND b.status=?'; $p[] = $f; }
-$st = db()->prepare($sql . ' ORDER BY b.created_at DESC'); $st->execute($p); $rows = $st->fetchAll();
+$rows = $bookingsRepo->forManager((int)$u['id'], $f);
 $title = 'Бандҳо'; include __DIR__ . '/../inc/header.php'; ?>
 <h1>Бандҳо</h1>
 <p><?php foreach (['pending' => 'Дар интизорӣ', 'confirmed' => 'Тасдиқшуда', 'rejected' => 'Рад шуда', 'cancelled' => 'Бекоршуда', 'all' => 'Ҳама'] as $k => $v): ?>

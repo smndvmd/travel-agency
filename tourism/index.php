@@ -1,26 +1,15 @@
 <?php
 require __DIR__ . '/config.php';
 $title = 'Турҳо';
-$regions = db()->query("SELECT DISTINCT region FROM tours WHERE is_active=1 ORDER BY region")->fetchAll(PDO::FETCH_COLUMN);
+$toursRepo = new Tourism\Repositories\TourRepository();
+$regions = $toursRepo->activeRegions();
 
-$where = ['t.is_active=1']; $p = [];
-if (($_GET['q'] ?? '') !== '')      { $where[] = '(t.title LIKE ? OR t.short_desc LIKE ?)'; $p[] = '%'.$_GET['q'].'%'; $p[] = '%'.$_GET['q'].'%'; }
-if (($_GET['region'] ?? '') !== '') { $where[] = 't.region=?'; $p[] = $_GET['region']; }
 $dur = $_GET['duration'] ?? '';
-if ($dur === '1-3') $where[] = 't.duration_days BETWEEN 1 AND 3';
-elseif ($dur === '4-7') $where[] = 't.duration_days BETWEEN 4 AND 7';
-elseif ($dur === '8+') $where[] = 't.duration_days >= 8';
-if (($_GET['min'] ?? '') !== '' && is_numeric($_GET['min'])) { $where[] = 't.price>=?'; $p[] = $_GET['min']; }
-if (($_GET['max'] ?? '') !== '' && is_numeric($_GET['max'])) { $where[] = 't.price<=?'; $p[] = $_GET['max']; }
-
-$sql = "SELECT t.*,
-  (SELECT file_path FROM photos WHERE tour_id=t.id ORDER BY is_main DESC, id LIMIT 1) AS cover,
-  (SELECT ROUND(AVG(rating),1) FROM reviews WHERE tour_id=t.id AND status='approved') AS rating,
-  (SELECT COUNT(*) FROM reviews WHERE tour_id=t.id AND status='approved') AS rcount,
-  (SELECT COALESCE(SUM(free_seats),0) FROM v_date_seats WHERE tour_id=t.id AND status='open' AND start_date>=CURDATE()) AS free_total
-  FROM tours t WHERE " . implode(' AND ', $where) . " ORDER BY t.created_at DESC";
-$st = db()->prepare($sql); $st->execute($p); $tours = $st->fetchAll();
-$hs = db()->query("SELECT (SELECT COUNT(*) FROM tours WHERE is_active=1) t, (SELECT COUNT(DISTINCT region) FROM tours WHERE is_active=1) r, (SELECT COALESCE(SUM(persons),0) FROM bookings WHERE status='confirmed') p")->fetch();
+$tourPage = $toursRepo->search($_GET, filter_var($_GET['page'] ?? 1, FILTER_VALIDATE_INT) ?: 1);
+$tours = $tourPage['items'];
+$pageQuery = $_GET;
+unset($pageQuery['page']);
+$hs = (new Tourism\Repositories\DashboardRepository())->homeStats();
 include __DIR__ . '/inc/header.php';
 ?>
 <section class="hero">
@@ -68,4 +57,11 @@ include __DIR__ . '/inc/header.php';
   </div>
 <?php endforeach; ?>
 </div>
+<?php if ($tourPage['pages'] > 1): ?>
+<nav class="pagination" aria-label="Навигация по страницам">
+  <?php for ($page = 1; $page <= $tourPage['pages']; $page++): $pageQuery['page'] = $page; ?>
+    <a class="btn small <?= $page === $tourPage['page'] ? '' : 'gray' ?>" href="?<?= e(http_build_query($pageQuery)) ?>"><?= $page ?></a>
+  <?php endfor; ?>
+</nav>
+<?php endif; ?>
 <?php include __DIR__ . '/inc/footer.php';
