@@ -1,0 +1,14 @@
+/vendor/
+/config/config.php
+/.env
+/uploads/*
+!/uploads/.gitkeep
+/public/uploads/*
+!/public/uploads/.gitkeep
+!/public/uploads/.htaccess
+!/public/uploads/39270fd2cd4614d3.png
+!/public/uploads/f2ee82a8fda809c7.png
+.phpunit.cache/
+.phpunit.result.cache
+.idea/
+.vscode/

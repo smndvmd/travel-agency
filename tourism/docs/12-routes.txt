@@ -1,0 +1,35 @@
+Front controller and clean routes (the existing tourism pages are used in
+place of the university HR examples in the lab handout):
+
+GET  /                  Tour catalogue
+GET  /tours             Tour catalogue
+GET  /tour/{id}         Tour details; id must contain digits only
+GET  /login             Login form
+POST /login             Login submission
+GET  /register          Registration form
+POST /register          Registration submission
+
+The shared entry point is public/index.php. The public router serves static
+assets directly and sends other requests to the front controller. It also
+forwards the existing booking/profile/manager/admin PHP endpoints to preserve
+the previous lab's functionality. The old /tour.php?id=... URL is supported.
+
+Apache/XAMPP: use tourism/public as DocumentRoot, enable mod_rewrite and
+AllowOverride All. Import database.sql first. Development server (from the
+tourism directory):
+
+php -S localhost:8000 -t public public/router.php
+
+Manual HTTP checks (run while the app and database are available):
+
+curl -i http://localhost:8000/
+curl -i http://localhost:8000/tours
+curl -i http://localhost:8000/tour/1
+curl -i http://localhost:8000/tour/999999
+curl -i http://localhost:8000/no-such-route
+curl -i -X POST http://localhost:8000/tours
+
+Expected status codes: catalogue and existing tour 200; missing tour and
+unknown route 404; POST /tours 405 with Allow: GET. Login success redirects
+with 302. A database connection error is rendered as 500 (details are hidden
+unless APP_DEBUG=1).

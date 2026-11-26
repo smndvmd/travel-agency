@@ -1,4 +1,7 @@
-<?php $u = me(); $flash = flash(); ?>
+<?php
+if (!array_key_exists('u', get_defined_vars())) $u = function_exists('me') ? me() : null;
+if (!array_key_exists('flash', get_defined_vars())) $flash = function_exists('flash') ? flash() : null;
+?>
 <!DOCTYPE html>
 <html lang="tg"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -21,8 +24,8 @@
       <span class="who"><?= e($u['full_name']) ?></span>
       <a href="<?= url('logout.php') ?>">Баромадан</a>
     <?php else: ?>
-      <a href="<?= url('login.php') ?>">Ворид шудан</a>
-      <a class="btn small" href="<?= url('register.php') ?>">Сабти ном</a>
+      <a href="<?= url('login') ?>">Ворид шудан</a>
+      <a class="btn small" href="<?= url('register') ?>">Сабти ном</a>
     <?php endif; ?>
     <button class="theme" id="themeBtn" type="button" aria-label="Мавзӯ">🌙</button>
   </nav>

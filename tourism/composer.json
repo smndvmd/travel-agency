@@ -1,0 +1,9 @@
+{
+  "name": "tourism/tajikistan-tours",
+  "description": "Tourism site with a PHP MVC front controller",
+  "type": "project",
+  "license": "MIT",
+  "require": { "php": ">=8.2", "ext-pdo": "*", "ext-mbstring": "*" },
+  "autoload": { "psr-4": { "Tourism\\": "src/" } },
+  "config": { "sort-packages": true }
+}

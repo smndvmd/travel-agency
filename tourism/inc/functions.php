@@ -1,5 +1,5 @@
 <?php
-function e($s): string { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
+function e($s): string { return htmlspecialchars((string)$s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
 function url(string $p = ''): string { return BASE_URL . '/' . ltrim($p, '/'); }
 function redirect(string $p) { header('Location: ' . url($p)); exit; }
 function money($n): string { return number_format((float)$n, 0, '.', ' ') . ' сом.'; }
@@ -39,6 +39,14 @@ function photo_src(?string $p): string {
     if (!$p) return '';
     return preg_match('~^https?://~', $p) ? $p : url($p);
 }
+function upload_storage_dir(): string {
+    $publicDocumentRoot = BASE_URL === '' || str_ends_with(BASE_URL, '/public');
+    return dirname(__DIR__) . ($publicDocumentRoot ? '/public/uploads' : '/uploads');
+}
+function upload_storage_path(string $relativePath): ?string {
+    if (!str_starts_with($relativePath, 'uploads/')) return null;
+    return upload_storage_dir() . '/' . basename($relativePath);
+}
 function difficulty_label(string $d): string {
     return ['easy' => 'Осон', 'medium' => 'Миёна', 'hard' => 'Душвор'][$d] ?? $d;
 }
@@ -52,6 +60,6 @@ function upload_photo(array $file): ?string {
     if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp'], true)) return null;
     if (!@getimagesize($file['tmp_name'])) return null;
     $name = bin2hex(random_bytes(8)) . '.' . $ext;
-    if (!move_uploaded_file($file['tmp_name'], __DIR__ . '/../uploads/' . $name)) return null;
+    if (!move_uploaded_file($file['tmp_name'], upload_storage_dir() . '/' . $name)) return null;
     return 'uploads/' . $name;
 }

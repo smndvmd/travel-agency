@@ -30,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pid = (int)$_POST['pid'];
         if ($fp = $photosRepo->findPath($pid, $id)) {
             $photosRepo->delete($pid, $id);
-            if (strpos($fp, 'uploads/') === 0) @unlink(__DIR__ . '/../' . $fp);
+            if ($storedFile = upload_storage_path($fp)) @unlink($storedFile);
         }
     }
     if ($id && $a === 'photo_main') {
